@@ -97,10 +97,14 @@ function modify(req, res) {
 
     // Destroy
     function destroy(req, res) {
-        const post = req.post
-        const postsIndex = posts.findIndex((p) => p.id === post.id || p.slug === post.slug)
-        posts.splice(postsIndex, 1)
-        res.sendStatus(204)
+        const postId = req.post.id;
+        connection.query('DELETE FROM posts WHERE id = ?', [postId], (err) => {
+            if (err) {
+                res.status(500).json({ error: 'Database query error' });
+                return;
+        }
+        res.sendStatus(204);
+    });
     }
 
     module.exports = { index, show, store, update, modify, destroy,}
