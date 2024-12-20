@@ -1,41 +1,21 @@
 const posts = require('../data/posts.js')
 const categories = require('../data/categories.js')
 let lastIndex = posts.at(-1).id
+const db = require('../config/db.js');
+const connection = require('../config/db.js');
+
 
 // Index
 function index(req, res) {
     console.log('Lista dei post')
-    let filteredPosts = posts
-
-    
-    if (req.query.tag) {
-        filteredPosts = posts.filter((post) => {
-            return post.tags.includes(req.query.tag.toLowerCase())
-        })
-    }
-    
-    if (req.query.notPublished) {
-        filteredPosts = filteredPosts.filter((post) =>{
-            return post.published === false
-        })
-    } else {
-        filteredPosts = filteredPosts.filter((post) =>{
-            return post.published === true
-        })
-    }
-
-    const limit = parseInt(req.query.limit)
-	if (limit && !isNaN(limit) && limit >= 0) {
-		filteredPosts = filteredPosts.slice(0, limit)
-	}
-
-    res.json(filteredPosts)
-}
-
-function categoriesIndex(req, res) {
-    res.json(categories)
-    console.log(categories);
-    
+    const sql = 'SELECT * FROM posts';
+    connection.query(sql, (err, result) => { 
+        if (err) {
+            res.status(500).json({error: err.message});
+            return;
+        }
+        res.json(result);
+    });  
 }
 // Show
 function show(req, res) {
@@ -123,7 +103,7 @@ function modify(req, res) {
         res.sendStatus(204)
     }
 
-    module.exports = { index, show, store, update, modify, destroy, categoriesIndex }
+    module.exports = { index, show, store, update, modify, destroy,}
 
     // Funzioni
 

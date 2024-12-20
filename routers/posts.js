@@ -23,7 +23,6 @@ router.param('identifier', (req, res, next, identifier) => {
 
 // Index
 router.get('/', postController.index)
-router.get('/categories',postController.categoriesIndex)
 // Show
 router.get('/:identifier' , postController.show)
 // Store
