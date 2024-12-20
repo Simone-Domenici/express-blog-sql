@@ -19,7 +19,17 @@ function index(req, res) {
 }
 // Show
 function show(req, res) {
-    res.json(req.post)
+    const postId = req.post.id;
+    connection.query('SELECT * FROM posts WHERE id = ?', [postId], (err, results) => {
+        if (err) {
+            res.status(500).json({ error: 'Database query error' });
+            return;
+        }
+        if (results.length === 0) {
+			return res.status(404).json({ error: 'Post not found' })
+        }
+        res.json(results[0]);
+    });
 }
 // Store
 function store(req, res) {
