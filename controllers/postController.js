@@ -3,32 +3,45 @@ const categories = require('../data/categories.js')
 let lastIndex = posts.at(-1).id
 const db = require('../config/db.js');
 const connection = require('../config/db.js');
+const { post } = require('../routers/posts.js');
 
 
 // Index
 function index(req, res) {
     console.log('Lista dei post')
     const sql = 'SELECT * FROM posts';
-    connection.query(sql, (err, result) => { 
+    connection.query(sql, (err, result) => {
         if (err) {
-            res.status(500).json({error: err.message});
+            res.status(500).json({ error: err.message });
             return;
         }
         res.json(result);
-    });  
+    });
 }
 // Show
 function show(req, res) {
     const postId = req.post.id;
-    connection.query('SELECT * FROM posts WHERE id = ?', [postId], (err, results) => {
+    connection.query('SELECT * FROM posts WHERE id = ?', [postId], (err, postResults) => {
         if (err) {
             res.status(500).json({ error: 'Database query error' });
             return;
         }
-        if (results.length === 0) {
-			return res.status(404).json({ error: 'Post not found' })
+
+        if (postResults.length === 0) {
+            res.status(404).json({ error: 'Post not found' });
+            return;
         }
-        res.json(results[0]);
+
+        connection.query('SELECT label FROM tags WHERE id IN (SELECT tag_id FROM post_tag WHERE post_id = ?)', [postId], (err, tagResults) => {
+            if (err) {
+                res.status(500).json({ error: 'Database query error' });
+                return;
+            }
+
+            const post = postResults[0];
+            post.tags = tagResults.map(tag => tag.label);
+            res.json(post);
+        });
     });
 }
 // Store
@@ -95,63 +108,63 @@ function modify(req, res) {
     const { title, image, content, tags } = req.body
 
     if (title) {
-    req.post.title = title
-    req.post.slug = createSlug(title)
+        req.post.title = title
+        req.post.slug = createSlug(title)
     }
     if (content) req.post.content = content
     if (image) req.post.image = image
     if (tags) req.post.tags = tags
 
     res.json(req.post)
-    }
+}
 
-    // Destroy
-    function destroy(req, res) {
-        const postId = req.post.id;
-        connection.query('DELETE FROM posts WHERE id = ?', [postId], (err) => {
-            if (err) {
-                res.status(500).json({ error: 'Database query error' });
-                return;
+// Destroy
+function destroy(req, res) {
+    const postId = req.post.id;
+    connection.query('DELETE FROM posts WHERE id = ?', [postId], (err) => {
+        if (err) {
+            res.status(500).json({ error: 'Database query error' });
+            return;
         }
         res.sendStatus(204);
     });
+}
+
+module.exports = { index, show, store, update, modify, destroy, }
+
+// Funzioni
+
+function validate(req) {
+    const { title, content, image, tags, category, published = true } = req.body
+
+    const errors = []
+
+    if (!title) {
+        errors.push('Title is required')
     }
 
-    module.exports = { index, show, store, update, modify, destroy,}
-
-    // Funzioni
-
-    function validate(req) {
-        const { title, content, image, tags, category, published = true } = req.body
-
-        const errors = []
-
-        if (!title) {
-            errors.push('Title is required')
-        }
-
-        if (!category) {
-            errors.push('Category is required')
-        }
-
-        if (!content) {
-            errors.push('Content is required')
-        }
-
-        if (!tags) {
-            errors.push('Tags is required')
-        }
-
-        return errors
+    if (!category) {
+        errors.push('Category is required')
     }
 
-
-    function createSlug(title) {
-        // Rimuovi caratteri speciali e accent
-        const slug = title.toLowerCase()
-            .replace(/[^\w\s-]/g, '') // Rimuovo caratteri non alfanumerici, spazi e trattini
-            .replace(/\s+/g, '-') // Sostituisco spazi multipli con un singolo trattino
-            .replace(/-+/g, '-'); // Rimuovo trattini multipli
-
-        return slug;
+    if (!content) {
+        errors.push('Content is required')
     }
+
+    if (!tags) {
+        errors.push('Tags is required')
+    }
+
+    return errors
+}
+
+
+function createSlug(title) {
+    // Rimuovi caratteri speciali e accent
+    const slug = title.toLowerCase()
+        .replace(/[^\w\s-]/g, '') // Rimuovo caratteri non alfanumerici, spazi e trattini
+        .replace(/\s+/g, '-') // Sostituisco spazi multipli con un singolo trattino
+        .replace(/-+/g, '-'); // Rimuovo trattini multipli
+
+    return slug;
+}
